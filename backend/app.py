@@ -67,7 +67,7 @@ class DynamicObsRequest(BaseModel):
     remaining_path: List[List[int]]
 
 # ── API Routes ────────────────────────────────────────────────
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
     return {
         "status": "ONLINE",
@@ -181,15 +181,15 @@ if os.path.exists(frontend_dir):
     app.mount("/css", StaticFiles(directory=os.path.join(frontend_dir, "css")), name="css")
     app.mount("/js", StaticFiles(directory=os.path.join(frontend_dir, "js")), name="js")
 
-    @app.get("/")
+    @app.api_route("/", methods=["GET", "HEAD"])
     async def serve_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"), media_type="text/html")
 
-    @app.get("/index.html")
+    @app.api_route("/index.html", methods=["GET", "HEAD"])
     async def serve_index_html():
         return FileResponse(os.path.join(frontend_dir, "index.html"), media_type="text/html")
 
-    @app.get("/garuda_ops.html")
+    @app.api_route("/garuda_ops.html", methods=["GET", "HEAD"])
     async def serve_garuda_ops():
         return FileResponse(os.path.join(frontend_dir, "garuda_ops.html"), media_type="text/html")
 
