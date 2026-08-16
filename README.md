@@ -1,31 +1,83 @@
-# 🦅 GARUDA-OPS
+# 🦅 GARUDA-OPS v10
 
-Autonomous Swarm Control and Surveillance System with Reinforcement Learning.
+Autonomous Drone Swarm Control & Surveillance System with Reinforcement Learning.
 
-## 🚀 Project Structure
+## 📁 Project Structure
 
-This project is divided into Frontend and Backend components for better maintainability.
+```
+Garuda-OPS/
+├── frontend/                    ← Deploy to Vercel (static)
+│   ├── index.html               ← Secure login portal
+│   ├── garuda_ops.html          ← Main mission command center
+│   ├── css/
+│   │   ├── login.css            ← Login page styles
+│   │   └── garuda.css           ← Dashboard styles
+│   ├── js/
+│   │   ├── login.js             ← Auth flow, particles, splash
+│   │   └── garuda.js            ← Q-Learning, A*, simulation
+│   └── vercel.json              ← Vercel deployment config
+│
+├── backend/                     ← Deploy to Render (Python)
+│   ├── main.py                  ← Pipeline entry point
+│   ├── grid.py                  ← Grid map generation
+│   ├── planner.py               ← Boustrophedon + A* planner
+│   ├── dynamic_replanner.py     ← D* Lite dynamic replanning
+│   ├── rl_agent.py              ← Q-Learning agent
+│   └── requirements.txt         ← Python dependencies
+│
+├── README.md
+└── .gitignore
+```
 
-### 🌐 Frontend
-- `index.html`: Secure access and operator login portal.
-- `garuda_ops.html`: Main mission control and swarm command center.
-- `css/`: Styling for the dashboard and login portal.
-- `js/`: Core logic, including Q-Learning implementation and A* pathfinding.
+## 🚀 Features
 
-### ⚙️ Backend
-- `python/`: Backend logic and scripts for drone operations.
+| Feature | Description |
+|---|---|
+| **Q-Learning (RL)** | Drone learns obstacle patterns, improves efficiency each mission |
+| **A* Pathfinding** | Energy-aware routing with turn-cost penalty that grows with mission number |
+| **Boustrophedon Pattern** | Optimal snake-pattern coverage of the surveillance zone |
+| **Fog of War** | Dynamic map discovery as drones explore |
+| **RTB Protocol** | Auto Return-To-Base on low battery (12%), recharge and resume |
+| **Swarm Support** | 1–4 drones operating simultaneously with sectored zones |
+| **💾 localStorage** | Q-table & mission history persist across page refreshes |
+| **🍞 Toast Alerts** | Real-time slide-in notifications for RTB, obstacles, mission complete |
+| **🔊 Voice Alerts** | Web Speech API — spoken announcements for critical events |
+| **📊 Live Chart** | Chart.js learning curve showing Efficiency & Replannings per mission |
+| **🗺️ Minimap Radar** | Live 90×90 radar overlay with drone blips and scan sweep |
+| **📥 JSON Export** | Download full mission report as JSON |
 
-## 🛠 Features
-- **Pure Boustrophedon Pattern**: Optimized snake pattern for maximum coverage.
-- **Reinforcement Learning (Q-Learning)**: Improves A* routing and obstacle avoidance over multiple missions.
-- **Fog of War**: Dynamic discovery of the mission zone.
-- **RTB & Home Logic**: Automated Return-To-Base on low battery and mission completion.
-- **Swarm Support**: Coordinate multiple drones (1-4) simultaneously.
+## 🌐 How to Run Locally
 
-## 📖 How to Run
-1. Open `index.html` in your web browser.
-2. Login with any operator ID.
-3. Establish link and launch the swarm!
+1. Open `frontend/index.html` in your browser
+2. Login with Operator ID: `Gaurav`, Access Code: `Gaurav@4355`, Clearance: `DELTA`
+3. Set surveillance zone coordinates and click **ESTABLISH LINK**
+4. Click **🚀 LAUNCH SWARM** — watch drones learn!
+
+## ☁️ Deployment
+
+### Frontend → Vercel
+
+1. Push repo to GitHub
+2. Go to [vercel.com](https://vercel.com) → New Project → Import repo
+3. Set **Root Directory** to `frontend`
+4. Framework Preset: `Other`
+5. Click **Deploy** ✅
+
+### Backend → Render
+
+1. Go to [render.com](https://render.com) → New → Web Service
+2. Connect same GitHub repo
+3. Set **Root Directory** to `backend`
+4. Runtime: `Python 3`
+5. Start Command: `python main.py`
+6. Click **Deploy** ✅
+
+## 🧠 How Q-Learning Works
+
+- **Mission 1**: Drone explores randomly (ε=0.90), hits dynamic obstacles, replannings occur
+- **Mission 2+**: Memory preloads known obstacles, A* avoids danger zones, fewer replannings
+- **Mission 5+**: Epsilon decays to 0.50, Q-values guide straight-path preference
+- **Mission 10+**: Near-perfect efficiency, minimal replannings, fully learned map
 
 ---
-Developed with ❤️ for Garuda-OPS Swarm Command.
+Developed for GARUDA-OPS Swarm Command | v10

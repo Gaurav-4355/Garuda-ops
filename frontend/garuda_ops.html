@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GARUDA-OPS // SWARM COMMAND</title>
+  <meta name="description" content="GARUDA Autonomous Swarm Surveillance — Q-Learning drone swarm command center with A* pathfinding and Fog of War">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/garuda.css?v=30">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- CLEAN TOP HEADER -->
+  <header>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="logo">GARUDA-OPS</div>
+      <button class="hbtn" onclick="openHubModal()" title="Open Mission Gateway">⚡ MISSION HUB</button>
+    </div>
+    
+    <div class="hdr-center">
+      <span id="msnNameDisplay" style="color:var(--b);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px">OPERATION DELTA</span>
+      <span style="color:var(--tx);margin:0 8px">·</span>
+      <span id="msnTag" class="msn-tag">ROUND 1</span>
+    </div>
+    
+    <div class="hdr-r">
+      <button class="hbtn" id="voiceBtn" onclick="toggleVoice()" title="Toggle Voice Alerts">🔇 VOICE</button>
+      <span id="memStatus" class="mem-status"></span>
+      <span id="clk">00:00:00</span>
+      <div class="ldot"></div>
+      <span style="color:var(--g)">SYSTEM: OPTIMAL</span>
+      <button class="hbtn" style="border-color:var(--r);color:var(--r)" onclick="window.location.href='index.html'" title="Logout to Login Screen">⏻ LOGOUT</button>
+    </div>
+  </header>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="layout">
+    <!-- LEFT PANEL: STATUS & TELEMETRY -->
+    <aside class="lp">
+      <div id="droneCards">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="sec-title" style="margin-top:10px">◈ MISSION DATA</div>
+      <div class="kv"><span>ACTIVE DRONES</span><span class="val vb" id="vAct">0</span></div>
+      <div class="kv"><span>ACCURACY / COVERAGE</span><span class="val vg" id="vCov">0%</span></div>
+      <div class="battbar" style="margin-bottom:4px"><div id="covBar" class="battfill" style="width:0;background:var(--g)"></div></div>
+      <div class="kv"><span>PATH EFFICIENCY</span><span class="val vb" id="vEff">0%</span></div>
+      <div class="battbar" style="margin-bottom:4px"><div id="effBar" class="battfill" style="width:0;background:var(--b)"></div></div>
+      <div class="kv"><span>FLIGHT TIME</span><span class="val vb" id="vTime">0.0s</span></div>
+      <div class="kv"><span>STRAIGHT MOVES</span><span class="val vg" id="vStraight">0</span></div>
+      <div class="kv"><span>TURN MOVES</span><span class="val vo" id="vTurns">0</span></div>
+      <div class="kv"><span>ENERGY USED</span><span class="val vpu" id="vEnergy">0 units</span></div>
+      <div class="kv"><span>FOG CLEARED</span><span class="val vb" id="vFog">0%</span></div>
+      <div class="kv"><span>REPLANNINGS</span><span class="val vr" id="vRep">0</span></div>
+      <div class="kv"><span>EXPLORATION RATE ε</span><span class="val vpu" id="vEps">0.90</span></div>
+
+      <div class="sec-title" style="margin-top:10px">◈ GLOBAL MEMORY</div>
+      <div class="kv"><span>OBSTACLES</span><span class="val vo" id="vKO">0</span></div>
+      <div class="kv"><span>DANGER CELLS</span><span class="val vr" id="vDZ">0</span></div>
+      <div class="kv"><span>Q-STATES LEARNED</span><span class="val vb" id="vQS">0</span></div>
+      <div class="kv"><span>RL STATUS</span><span class="val vg" id="vSafe">✓ ACTIVE</span></div>
+
+      <div class="sec-title" style="margin-top:10px">◈ ROUND HISTORY</div>
+      <div id="mhist" style="flex:1;overflow-y:auto"></div>
+    </aside>
+
+    <!-- CENTER: MAIN MAP -->
+    <main class="center">
+      <div class="map-wrap">
+        <div class="top-tag" id="topTag">GARUDA-OPS // SWARM COMMAND</div>
+        <div class="map-corner mc-tl"></div><div class="map-corner mc-tr"></div>
+        <div class="map-corner mc-bl"></div><div class="map-corner mc-br"></div>
+        
+        <!-- REAL SATELLITE MAP CONTAINER -->
+        <div id="leafletMap" class="leaflet-map-layer"></div>
+        
+        <!-- TACTICAL SIMULATION CANVAS -->
+        <canvas id="gc"></canvas>
+
+        <div id="hintBox" class="hintbox"></div>
+        <div class="edbar" id="edbar">
+          <button id="tObs" class="tbtn t-obs" onclick="setTool('obs')">OBSTACLE</button>
+          <button id="tNfz" class="tbtn t-nfz on" onclick="setTool('nfz')">NO-FLY</button>
+          <button id="tEra" class="tbtn t-era" onclick="setTool('era')">ERASE</button>
+          <div style="width:1px;height:12px;background:var(--bdr);margin:0 4px"></div>
+          <button class="tbtn t-clr" onclick="clearEdits()">CLEAR</button>
+        </div>
+      </div>
+      <div class="cbar" id="cbar">ESTABLISHING DATA LINK...</div>
+    </main>
+
+    <!-- RIGHT PANEL: COMMANDS -->
+    <aside class="rp">
+      <div class="sec-title">◈ SWARM CONFIG</div>
+      <div class="cnt-row">
+        <button class="cnt-btn" onclick="setN(1)">1</button>
+        <button class="cnt-btn on" onclick="setN(2)">2</button>
+        <button class="cnt-btn" onclick="setN(3)">3</button>
+        <button class="cnt-btn" onclick="setN(4)">4</button>
+      </div>
+
+      <div class="sec-title" style="margin-top:12px">◈ ENGINE VELOCITY</div>
+      <div class="kv"><span>SPEED LEVEL</span><span class="val vb" id="spdDisplay">~50 km/h</span></div>
+      <input type="range" id="spdSlider" min="1" max="10" value="5" oninput="onSpeedChange()">
+
+      <div class="sec-title" style="margin-top:12px">◈ CONTROLS</div>
+      <button class="btn bg" id="launchBtn" onclick="doLaunch()"><span>🚀 LAUNCH SWARM</span></button>
+      <button class="btn bpu" id="relaunchBtn" style="margin-top:5px;display:none" onclick="relaunchSameZone()"><span>⚡ RELAUNCH MISSION</span></button>
+      <div class="btn-row" style="margin:5px 0">
+        <button class="btn bo" id="pauseBtn" onclick="togglePause()" disabled><span id="pauseTxt">⏸ PAUSE</span></button>
+        <button class="btn bo" id="obsBtn" onclick="toggleObsMode()"><span>🎯 OBSTACLE</span></button>
+      </div>
+      <button class="btn bb" id="editBtn" onclick="toggleEdit()"><span>✏ EDIT MAP</span></button>
+      <button class="btn br" style="margin-top:5px" onclick="fullReset()"><span>↺ HARD RESET</span></button>
+
+      <div class="sec-title" style="margin-top:12px">◈ LIVE EVENT LOG</div>
+      <div id="elog" class="elog"></div>
+
+      <div class="sec-title" style="margin-top:10px">◈ LEGEND</div>
+      <div class="elog" style="gap:4px">
+        <div class="legend-item"><div class="legend-dot" style="background:#ff4466"></div><span>OBSTACLE / NO-FLY</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(255,68,102,0.4)"></div><span>DANGER ZONE (RL)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div><span>KNOWN OBSTACLE (MEM)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0b1225"></div><span>FOG OF WAR</span></div>
+      </div>
+
+      <div class="sec-title" style="margin-top:10px">◈ THREAT HEATMAP</div>
+      <canvas id="heatCanvas" width="185" height="90" style="border:1px solid var(--bdr);border-radius:2px;display:block;margin:0 auto"></canvas>
+      <div id="heatSub" style="font-size:7px;color:var(--tx);text-align:center;margin-top:2px;letter-spacing:1px"></div>
+    </aside>
+  </div>
+
+  <!-- GATEWAY HUB MODAL (LANDING AFTER LOGIN) -->
+  <div class="modal-bg open" id="hubModal">
+    <div class="modal" style="max-width:620px;width:100%">
+      <div class="modal-t" style="font-size:13px;text-align:center;margin-bottom:6px">🦅 GARUDA COMMAND GATEWAY</div>
+      <div class="modal-s" style="text-align:center;margin-bottom:20px">SELECT OPERATION MODE TO INITIALIZE SWARM SURVEILLANCE</div>
+
+      <!-- TWO PRIMARY CHOICES -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="hub-choice-card" onclick="openMyMissionsFromHub()">
+          <div class="hub-icon">📁</div>
+          <div class="hub-title">OUR MISSIONS</div>
+          <div class="hub-desc">View past saved operations, inspect learning history, and resume trained Q-table swarms.</div>
+          <button class="btn bb" style="margin-top:10px"><span>BROWSE VAULT</span></button>
+        </div>
+
+        <div class="hub-choice-card" onclick="openNewMissionFromHub()">
+          <div class="hub-icon">➕</div>
+          <div class="hub-title">NEW MISSION</div>
+          <div class="hub-desc">Configure a brand new operation, choose tactical simulation or real live map, and deploy.</div>
+          <button class="btn bg" style="margin-top:10px"><span>CREATE NEW</span></button>
+        </div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="btn bo" style="max-width:200px;margin:0 auto" onclick="closeHubModal()"><span>CONTINUE ACTIVE SESSION</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY MISSIONS MODAL -->
+  <div class="modal-bg" id="myMissionsModal">
+    <div class="modal" style="max-width:680px;width:100%">
+      <div class="modal-t">📁 OUR SAVED MISSIONS</div>
+      <div class="modal-s">BROWSE, LOAD, AND RESUME YOUR PERSISTENT AUTONOMOUS MISSIONS</div>
+
+      <div id="myMissionsList" class="missions-list-wrap">
+        <!-- Dynamically rendered list of saved missions -->
+      </div>
+
+      <div class="mbtns" style="margin-top:14px">
+        <button class="btn bg" onclick="closeMyMissions(); openNewMissionModal();"><span>➕ START NEW MISSION</span></button>
+        <button class="btn bo" onclick="closeMyMissions()"><span>✕ BACK</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW MISSION SETUP MODAL -->
+  <div class="modal-bg" id="newMissionModal">
+    <div class="modal" style="max-width:580px;width:100%">
+      <div class="modal-t">➕ CONFIGURE NEW MISSION</div>
+      <div class="modal-s">NAME YOUR SURVEILLANCE MISSION AND SELECT AIRSPACE MODE</div>
+
+      <div class="mfield" style="margin-bottom:14px">
+        <label>MISSION CODENAME</label>
+        <input type="text" id="newMsnName" value="OPERATION DELTA" placeholder="e.g. Operation Garuda Recon" style="font-size:13px;color:var(--g);font-weight:bold">
+      </div>
+
+      <!-- ENVIRONMENT MODE CHOOSER -->
+      <div style="margin-bottom:14px">
+        <label style="font-size:8px;letter-spacing:1.5px;color:var(--tx);display:block;margin-bottom:6px">ENVIRONMENT TYPE</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="mode-select-box active" id="boxModeSim" onclick="selectNewMode('sim')">
+            <div style="font-size:14px;margin-bottom:4px">💻</div>
+            <b style="font-size:9px;color:var(--b);display:block">SIMULATION GRID</b>
+            <span style="font-size:7.5px;color:var(--tx)">Standard tactical grid with obstacle hazards</span>
+          </div>
+          <div class="mode-select-box" id="boxModeSat" onclick="selectNewMode('sat')">
+            <div style="font-size:14px;margin-bottom:4px">🛰️</div>
+            <b style="font-size:9px;color:var(--g);display:block">REAL LIVE MAP</b>
+            <span style="font-size:7.5px;color:var(--tx)">Esri Satellite imagery & GPS coordinates</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="liveGpsPromptSec" style="display:none;margin-bottom:12px">
+        <button class="btn bg" style="padding:8px" onclick="useLiveGPSInNew()"><span>📍 ACQUIRE MY LIVE GPS LOCATION</span></button>
+      </div>
+
+      <div class="mgrid">
+        <div class="mfield"><label>LATITUDE (N/S)</label><input type="text" id="newLat" value="28.6139"></div>
+        <div class="mfield"><label>LONGITUDE (E/W)</label><input type="text" id="newLng" value="77.2090"></div>
+        <div class="mfield"><label>RADIUS (KM)</label><input type="text" id="newRad" value="2"></div>
+        <div class="mfield"><label>ALTITUDE (M)</label><input type="text" id="newAlt" value="120"></div>
+      </div>
+
+      <div class="sec-title">◈ PRESET REGIONS</div>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="setNewPreset(28.6139, 77.2090, 120, 'DELHI URBAN RECON')">NEW DELHI</button>
+        <button class="preset-btn" onclick="setNewPreset(19.0760, 72.8777, 140, 'MUMBAI COASTAL GRID')">MUMBAI</button>
+        <button class="preset-btn" onclick="setNewPreset(12.9716, 77.5946, 120, 'BENGALURU TECH SECTOR')">BENGALURU</button>
+        <button class="preset-btn" onclick="setNewPreset(40.7128, -74.0060, 180, 'NEW YORK SKYLINE')">NEW YORK</button>
+        <button class="preset-btn" onclick="setNewPreset(51.5074, -0.1278, 110, 'LONDON METRO')">LONDON</button>
+        <button class="preset-btn" onclick="setNewPreset(35.6762, 139.6503, 150, 'TOKYO DENSE CITY')">TOKYO</button>
+      </div>
+
+      <div class="mbtns" style="margin-top:14px">
+        <button class="btn bg" onclick="createAndStartMission()"><span>🚀 INITIALIZE & START MISSION</span></button>
+        <button class="btn bo" onclick="closeNewMissionModal()"><span>✕ CANCEL</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE OVERLAY (FINAL REPORT DEBRIEF MODAL) -->
+  <div id="doneOv" class="done-ov">
+    <div class="done-modal-content">
+      <div class="done-title" id="doneTitle">ROUND 1 COMPLETE</div>
+      
+      <!-- CURRENT ROUND STATS -->
+      <div class="done-grid" id="doneGrid"></div>
+      
+      <!-- RL SUMMARY -->
+      <div class="done-note" id="doneNote"></div>
+
+      <!-- ROUND PROGRESSION TABLE -->
+      <div class="sec-title" style="text-align:center;color:var(--g);margin-top:8px;letter-spacing:2px">◈ ROUND-BY-ROUND REINFORCEMENT LEARNING PROGRESSION</div>
+      <div class="round-table-wrap">
+        <table class="round-prog-table">
+          <thead>
+            <tr>
+              <th>ROUND</th>
+              <th>FLIGHT TIME</th>
+              <th>ACCURACY</th>
+              <th>EFFICIENCY</th>
+              <th>STEPS</th>
+              <th>TURNS</th>
+              <th>REPLANS</th>
+              <th>EXPLORATION ε</th>
+              <th>PERFORMANCE GAIN</th>
+            </tr>
+          </thead>
+          <tbody id="roundTableBody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- REAL ATTRACTIVE LEARNING CURVE LINE CHART -->
+      <div class="done-chart-container">
+        <div class="sec-title" style="text-align:center;margin-bottom:6px;color:var(--b);letter-spacing:2px">◈ REINFORCEMENT LEARNING CURVE (EFFICIENCY ▲ & FLIGHT TIME ▼)</div>
+        <canvas id="lcGraphCanvas" width="760" height="200" style="display:block;margin:0 auto;width:100%;border-radius:4px"></canvas>
+        <div id="curveMetricsGrid" class="curve-bars-grid" style="margin-top:10px"></div>
+      </div>
+
+      <div class="done-btns" style="margin-top:12px">
+        <button class="btn bpu" id="relaunchMsnBtn" onclick="relaunchSameZone()"><span>⚡ RELAUNCH MISSION</span></button>
+        <button class="btn bg" id="nextBtn" onclick="nextMission()"><span>🗺️ NEW MISSION</span></button>
+        <button class="btn bb" onclick="exportReport()"><span>📥 EXPORT REPORT</span></button>
+        <button class="btn br" onclick="fullReset()"><span>↺ RESET ALL</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/garuda.js?v=30"></script>
+</body>
+</html>

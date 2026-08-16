@@ -1,6 +1,6 @@
-"""
-main.py - Run the full Autonomous Surveillance Path Optimisation Pipeline
-"""
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from grid import create_sample_map
 from planner import CoveragePlanner
