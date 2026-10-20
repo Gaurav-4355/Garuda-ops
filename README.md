@@ -53,24 +53,7 @@ Garuda-OPS/
 3. Set surveillance zone coordinates and click **ESTABLISH LINK**
 4. Click **🚀 LAUNCH SWARM** — watch drones learn!
 
-## ☁️ Deployment
 
-### Frontend → Vercel
-
-1. Push repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → New Project → Import repo
-3. Set **Root Directory** to `frontend`
-4. Framework Preset: `Other`
-5. Click **Deploy** ✅
-
-### Backend → Render
-
-1. Go to [render.com](https://render.com) → New → Web Service
-2. Connect same GitHub repo
-3. Set **Root Directory** to `backend`
-4. Runtime: `Python 3`
-5. Start Command: `python main.py`
-6. Click **Deploy** ✅
 
 ## 🧠 How Q-Learning Works
 
